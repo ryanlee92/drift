@@ -338,6 +338,24 @@ extension ComputeWithDriftIsolate<DB extends DatabaseConnectionUser> on DB {
       }
     });
   }
+  
+  @experimental
+  Future<Ret> computeWithDatabaseWithArg<Arg, Ret>({
+    required Arg argument,
+    required FutureOr<Ret> Function(DB, Arg) computation,
+    required DB Function(DatabaseConnection) connect,
+  }) async {
+    final connection = await serializableConnection();
+
+    return await Isolate.run(() async {
+      final database = connect(await connection.connect());
+      try {
+        return await computation(database, argument);
+      } finally {
+        await database.close();
+      }
+    });
+  }
 }
 
 /// Creates a [RunningDriftServer] and sends a [SendPort] that can be used to
